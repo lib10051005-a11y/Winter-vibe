@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>【軍事情報】領主生日物資已抵達</title>
+    <style>
+        :root {
+            --r-blue: #3b82f6;
+            --sr-purple: #a855f7;
+            --ssr-gold: #fbbf24;
+            --frost-white: #e2e8f0;
+            --bg-dark: #020617;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: var(--bg-dark);
+            font-family: -apple-system, "Noto Sans TC", sans-serif;
+            color: white;
+        }
+
+        /* 背景：雪花動畫 */
+        #snow-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+        /* 介面層 */
+        .ui-container {
+            position: relative; z-index: 10; height: 100%;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* 標題區域 */
+        .header {
+            margin-top: 60px; text-align: center;
+        }
+        .header h1 { font-size: 24px; letter-spacing: 5px; color: var(--frost-white); margin-bottom: 5px; }
+        .header p { font-size: 12px; color: #64748b; margin: 0; text-transform: uppercase; }
+
+        /* 空投動畫區 */
+        .drop-zone {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            width: 100%; position: relative;
+        }
+        .airdrop-box {
+            position: absolute; top: -300px; cursor: pointer;
+            transition: transform 4s cubic-bezier(0.22, 1, 0.36, 1);
+            text-align: center;
+        }
+        .parachute { font-size: 100px; line-height: 1; filter: drop-shadow(0 0 10px white); }
+        .box { font-size: 60px; margin-top: -30px; }
+
+        .smoke-flare {
+            position: absolute; bottom: 15%; width: 150px; height: 50px;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.6) 0%, transparent 70%);
+            filter: blur(20px); opacity: 0; transition: 1s;
+        }
+
+        /* 獎勵網格介面 */
+        #reward-screen {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.95); backdrop-filter: blur(20px);
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        .reward-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            width: 85%; margin-top: 20px;
+        }
+
+        /* 卡牌樣式 */
+        .card {
+            background: rgba(255,255,255,0.05); border-radius: 12px;
+            padding: 20px 10px; text-align: center; position: relative;
+            border: 2px solid transparent; transform: scale(0);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .card.show { transform: scale(1); }
+
+        /* 品質框分級 */
+        .q-r { border-color: var(--r-blue); box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.3); }
+        .q-sr { border-color: var(--sr-purple); box-shadow: inset 0 0 10px rgba(168, 85, 247, 0.3); }
+        .q-ssr { 
+            border-color: var(--ssr-gold); 
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            animation: ssr-glow 2s infinite alternate;
+        }
+        @keyframes ssr-glow { from { opacity: 0.8; } to { opacity: 1; box-shadow: 0 0 30px var(--ssr-gold); } }
+
+        .tag { position: absolute; top: 5px; left: 5px; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .card-icon { font-size: 40px; margin-bottom: 10px; }
+        .card-name { font-size: 14px; font-weight: bold; color: white; }
+
+        /* 詳情彈窗 */
+        #detail-modal {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.8); align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .detail-content {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--frost-white); border-radius: 20px;
+            width: 90%; max-width: 320px; padding: 30px; text-align: center;
+            animation: popUp 0.3s forwards;
+        }
+        @keyframes popUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .detail-icon { font-size: 60px; margin-bottom: 20px; }
+        .detail-title { color: var(--ssr-gold); font-size: 20px; margin-bottom: 15px; }
+        .detail-text { font-size: 15px; line-height: 1.6; color: #cbd5e1; }
+        .close-btn { margin-top: 25px; background: white; color: black; border: none; padding: 10px 30px; border-radius: 20px; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="snow-canvas"></canvas>
+
+    <div class="ui-container">
+        <div class="header">
+            <h1>領主大人</h1>
+            <p id="status-text">[ 偵測到生日波長：定位中... ]</p>
+        </div>
+
+        <div class="drop-zone">
+            <div id="airdrop" class="airdrop-box" onclick="openAirdrop()">
+                <div class="parachute">🪂</div>
+                <div class="box">📦</div>
+            </div>
+            <div id="flare" class="smoke-flare"></div>
+        </div>
+    </div>
+
+    <div id="reward-screen">
+        <h2 style="color: var(--ssr-gold); letter-spacing: 2px;">緊急補給領取成功</h2>
+        <div class="reward-grid" id="reward-list">
+            </div>
+        <p style="margin-top: 30px; color: #64748b; font-size: 12px;">點擊物資查看詳細情報</p>
+    </div>
+
+    <div id="detail-modal" onclick="closeModal()">
+        <div class="detail-content" onclick="event.stopPropagation()">
+            <div id="d-icon" class="detail-icon"></div>
+            <div id="d-title" class="detail-title"></div>
+            <div id="d-text" class="detail-text"></div>
+            <button class="close-btn" onclick="closeModal()">確認收錄</button>
+        </div>
+    </div>
+
+    <script>
+        // 禮物數據
+        const rewards = [
+            { id: 1, quality: 'q-r', tag: 'R', icon: '🥩', name: '極品生肉補給', detail: '為了維持領地運作，這份頂級和牛大餐是必須的。今晚我們前往高級餐廳，補充最頂級的蛋白質，恢復領主飽食度！' },
+            { id: 2, quality: 'q-sr', tag: 'SR', icon: '🎬', name: '偵查行動指令', detail: '特種偵查任務啟動！今晚請領主移駕影城，在黑暗中觀察敵情（順便享受大份爆米花）。' },
+            { id: 3, quality: 'q-sr', tag: 'SR', icon: '🕶️', name: 'GM 戰術護目鏡', detail: '檢測到強烈的極地反射光。這副 Gentle Monster 墨鏡是專為領主打造的防禦裝備，不僅遮擋強光，還能提升 100% 帥氣值。' },
+            { id: 4, quality: 'q-ssr', tag: 'SSR', icon: '✈️', name: '未知領地航線', detail: '警告：偵測到溫暖氣候的導航信號。這是一份跨國境的遷徙協議，只要領主準備好，我們隨時啟航前往你想去的國度。' }
+        ];
+
+        // 初始化雪花
+        const canvas = document.getElementById('snow-canvas');
+        const ctx = canvas.getContext('2d');
+        let w = canvas.width = window.innerWidth, h = canvas.height = window.innerHeight;
+        let flakes = Array.from({length: 80}, () => ({x: Math.random()*w, y: Math.random()*h, r: Math.random()*3+1, s: Math.random()*1.5+0.5}));
+        function snow() {
+            ctx.clearRect(0,0,w,h); ctx.fillStyle = "white"; ctx.beginPath();
+            flakes.forEach(f => { ctx.moveTo(f.x, f.y); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); f.y+=f.s; if(f.y>h) f.y=-10; });
+            ctx.fill(); requestAnimationFrame(snow);
+        }
+        snow();
+
+        // 空投邏輯
+        const box = document.getElementById('airdrop');
+        const flare = document.getElementById('flare');
+        const statusText = document.getElementById('status-text');
+
+        setTimeout(() => {
+            box.style.transform = `translateY(${window.innerHeight * 0.7}px)`;
+            setTimeout(() => {
+                flare.style.opacity = '1';
+                statusText.innerText = "[ 空投已著陸：點擊箱子開啟補給 ]";
+                statusText.style.color = "#f87171";
+            }, 4000);
+        }, 800);
+
+        function openAirdrop() {
+            document.body.style.background = "white";
+            setTimeout(() => {
+                document.body.style.background = "var(--bg-dark)";
+                document.getElementById('reward-screen').style.display = 'flex';
+                renderRewards();
+            }, 150);
+        }
+
+        function renderRewards() {
+            const list = document.getElementById('reward-list');
+            rewards.forEach((item, i) => {
+                const div = document.createElement('div');
+                div.className = `card ${item.quality}`;
+                div.innerHTML = `<span class="tag" style="background:var(--${item.tag.toLowerCase()}-color)">${item.tag}</span>
+                                 <div class="card-icon">${item.icon}</div>
+                                 <div class="card-name">${item.name}</div>`;
+                div.onclick = () => showDetail(item);
+                list.appendChild(div);
+                setTimeout(() => div.classList.add('show'), i * 250);
+            });
+        }
+
+        function showDetail(item) {
+            document.getElementById('d-icon').innerText = item.icon;
+            document.getElementById('d-title').innerText = item.name;
+            document.getElementById('d-text').innerText = item.detail;
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
