@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>【緊急指令】領主大人請啟封</title>
+    <style>
+        :root {
+            --r-color: #3b82f6; --sr-color: #a855f7; --ssr-color: #fbbf24;
+            --bg-dark: #020617; --frost: #e2e8f0;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: var(--bg-dark);
+            font-family: -apple-system, "Noto Sans TC", sans-serif; color: white;
+        }
+        #snow-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+        .ui-container { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; align-items: center; }
+
+        .header { margin-top: 50px; text-align: center; }
+        .header h1 { font-size: 26px; letter-spacing: 4px; color: var(--frost); text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .status { font-size: 11px; color: #94a3b8; margin-top: 8px; font-family: monospace; letter-spacing: 1px; }
+
+        .drop-zone { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; position: relative; }
+        .airdrop { position: absolute; top: -300px; cursor: pointer; transition: transform 4s cubic-bezier(0.22, 1, 0.36, 1); text-align: center; }
+        .smoke { position: absolute; bottom: 15%; width: 150px; height: 40px; background: radial-gradient(circle, rgba(239, 68, 68, 0.5) 0%, transparent 70%); filter: blur(20px); opacity: 0; }
+
+        #reward-screen {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.95); backdrop-filter: blur(15px);
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 90%; margin-top: 20px; }
+        
+        .card {
+            background: rgba(255,255,255,0.07); border-radius: 10px; padding: 15px 5px;
+            text-align: center; border: 1.5px solid transparent; transform: scale(0);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;
+        }
+        .card.show { transform: scale(1); }
+        .q-r { border-color: var(--r-color); }
+        .q-sr { border-color: var(--sr-color); }
+        .q-ssr { border-color: var(--ssr-color); box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); animation: glow 2s infinite alternate; }
+        @keyframes glow { from { opacity: 0.8; } to { opacity: 1; box-shadow: 0 0 25px var(--ssr-color); } }
+
+        .tag { position: absolute; top: 4px; left: 4px; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: bold; color: white; }
+        .icon { font-size: 36px; margin-bottom: 8px; }
+        .name { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
+
+        #modal { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b, #020617); border: 1px solid var(--frost);
+            border-radius: 15px; width: 80%; padding: 25px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        .m-icon { font-size: 50px; margin-bottom: 15px; }
+        .m-title { color: var(--ssr-color); font-size: 18px; margin-bottom: 10px; font-weight: bold; }
+        .m-text { font-size: 14px; line-height: 1.6; color: #cbd5e1; }
+        .close { margin-top: 20px; background: white; color: black; border: none; padding: 8px 25px; border-radius: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <canvas id="snow-canvas"></canvas>
+
+    <div class="ui-container">
+        <div class="header">
+            <h1>尊敬的領主大人</h1>
+            <p class="status" id="st">[ 系統掃描：偵測到生日波動... ]</p>
+        </div>
+        <div class="drop-zone">
+            <div id="air" class="airdrop" onclick="openBox()">
+                <div style="font-size:90px;">🪂</div>
+                <div style="margin-top:-30px; font-size:50px;">📦</div>
+            </div>
+            <div id="smk" class="smoke"></div>
+        </div>
+    </div>
+
+    <div id="reward-screen">
+        <h2 style="color:var(--ssr-color); margin-bottom:10px; letter-spacing: 2px;">緊急物資領取成功</h2>
+        <div class="grid" id="g"></div>
+        <p style="color:#64748b; font-size:11px; margin-top:20px;">點擊品項查看詳細情報</p>
+    </div>
+
+    <div id="modal" onclick="hM()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div id="mi" class="m-icon"></div>
+            <div id="mt" class="m-title"></div>
+            <div id="mx" class="m-text"></div>
+            <button class="close" onclick="hM()">確認收錄</button>
+        </div>
+    </div>
+
+    <script>
+        const rewards = [
+            { q: 'q-r', t: 'R', i: '🍲', n: '極熱能源物資', d: '報告領主！偵測到極寒天氣，已為您準備好熱氣騰騰的火鍋燃料，不僅能驅散嚴寒，還能大幅提升領地的幸福感。' },
+            { q: 'q-r', t: 'R', i: '🥩', n: '高級生肉配給', d: '為了維持領地的高強度運作，這份頂級和牛補給是必需的。請領主大人前往指定地點進行能量補充。' },
+            { q: 'q-sr', t: 'SR', i: '🎬', n: '特種偵查行動', d: '領主大人，請暫時放下建設工作。這是一份影城偵查指令，已為您預留最佳戰術位置，在黑暗中觀察敵情。' },
+            { q: 'q-sr', t: 'SR', i: '✈️', n: '未知邊境航線', d: '偵測到遠方溫暖氣候。這是一份跨國境遷徙協議，只要領主下令，我們將啟航前往任何國度進行領地擴張。' },
+            { q: 'q-ssr', t: 'SSR', i: '🕶️', n: '戰術抗光護目鏡', d: '【傳說級裝備】來自 GM 的軍事科技。這副 Gentle Monster 墨鏡具備強大抗眩光能力，能保護領主雙眼並大幅增加戰場魅力。' },
+            { q: 'q-ssr', t: 'SSR', i: '👜', n: '擴容戰術背囊', d: '【傳說級裝備】由頂級工匠打造的時尚名牌包包。它不僅能容納領主的所有重要物資，更是領地地位與絕對權力的象徵。' }
+        ];
+
+        const cvs = document.getElementById('snow-canvas');
+        const ctx = cvs.getContext('2d');
+        let w = cvs.width = window.innerWidth, h = cvs.height = window.innerHeight;
+        let p = Array.from({length: 70}, () => ({x: Math.random()*w, y: Math.random()*h, r: Math.random()*3+1, v: Math.random()*1.2+0.5}));
+        function draw() {
+            ctx.clearRect(0,0,w,h); ctx.fillStyle = "white"; ctx.beginPath();
+            p.forEach(i => { ctx.moveTo(i.x, i.y); ctx.arc(i.x, i.y, i.r, 0, Math.PI*2); i.y+=i.v; if(i.y>h) i.y=-10; });
+            ctx.fill(); requestAnimationFrame(draw);
+        }
+        draw();
+
+        const air = document.getElementById('air');
+        const smk = document.getElementById('smk');
+        const st = document.getElementById('st');
+
+        setTimeout(() => {
+            air.style.transform = `translateY(${h * 0.7}px)`;
+            setTimeout(() => { smk.style.opacity = '1'; st.innerText = "[ 空投已著陸：點擊箱子啟封 ]"; st.style.color = "#f87171"; }, 4000);
+        }, 800);
+
+        function openBox() {
+            document.body.style.background = "white";
+            setTimeout(() => {
+                document.body.style.background = "var(--bg-dark)";
+                document.getElementById('reward-screen').style.display = 'flex';
+                const g = document.getElementById('g');
+                rewards.forEach((item, i) => {
+                    const d = document.createElement('div');
+                    d.className = `card ${item.q}`;
+                    d.innerHTML = `<span class="tag" style="background:var(--${item.t.toLowerCase()}-color)">${item.t}</span><div class="icon">${item.i}</div><div class="name">${item.n}</div>`;
+                    d.onclick = () => {
+                        document.getElementById('mi').innerText = item.i;
+                        document.getElementById('mt').innerText = item.n;
+                        document.getElementById('mx').innerText = item.d;
+                        document.getElementById('modal').style.display = 'flex';
+                    };
+                    g.appendChild(d);
+                    setTimeout(() => d.classList.add('show'), i * 200);
+                });
+            }, 100);
+        }
+        function hM() { document.getElementById('modal').style.display = 'none'; }
+    </script>
+</body>
+</html>
