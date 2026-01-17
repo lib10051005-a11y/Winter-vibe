@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>尊敬的領主大人</title>
+    <title>尊敬的Stacey大人</title>
     <style>
         :root {
             --r-color: #3b82f6; --sr-color: #a855f7; --ssr-color: #fbbf24;
@@ -66,8 +66,8 @@
 
     <div class="ui-container">
         <div class="header">
-            <h1>尊敬的領主大人，<br>您是我心中溫暖的來源</h1>
-            <p class="status" id="st">[ 系統掃描：偵測到生日波動... ]</p>
+            <h1>尊敬的Stacey大人，<br>您的子民在寒冬中等待</h1>
+            <p class="status" id="st">[ 系統掃描：您的生日空投已送達 ]</p>
         </div>
         <div class="drop-zone">
             <div id="air" class="airdrop" onclick="openBox()">
@@ -96,9 +96,9 @@
 
     <script>
         const rewards = [
-            { q: 'q-r', t: 'R', i: '🥩', n: '頂級能量配給', sub: '高級和牛饗宴', d: '「妳是我最重要的生存動力。這份最頂級的蛋白質補給，只為了換取領主大人一個滿意的微笑。」' },
-            { q: 'q-sr', t: 'SR', i: '✈️', n: '未知邊境航線', sub: '出國旅遊承諾', d: '「這份航線不設終點，目的地取決於妳的眼光。只要妳想出發，無論天涯海角，我永遠是妳最忠誠的旅伴。」' },
-            { q: 'q-ssr', t: 'SSR', i: '👜', n: '擴容戰術背囊', sub: '時尚名牌包包', d: '「【傳說級裝備】這是專為領主打造的收納神器。它不僅能裝下妳的日常，更要裝滿我們的未來。」' }
+            { q: 'q-r', t: 'R', i: '🥩', n: '頂級能量配給', sub: '高級和牛饗宴', d: '妳是我最重要的生存動力。這份最頂級的蛋白質補給，只為了換取領主大人一個滿意的微笑。' },
+            { q: 'q-sr', t: 'SR', i: '✈️', n: '未知邊境航線', sub: '雙人來回機票', d: '這份航線不設終點，目的地取決於妳的眼光。只要妳想出發，無論天涯海角，我永遠是妳最忠誠的旅伴。' },
+            { q: 'q-ssr', t: 'SSR', i: '👜', n: '擴容戰術背囊', sub: '精品包購物券', d: '這是專為領主打造的收納神器。它不僅能裝下妳的日常，更要裝滿我們的未來。' }
         ];
 
         const cvs = document.getElementById('snow-canvas');
@@ -136,8 +136,7 @@
                     d.className = `card ${item.q}`;
                     d.innerHTML = `<span class="tag" style="background:var(--${item.t.toLowerCase()}-color)">${item.t}</span>
                                    <div class="icon">${item.i}</div>
-                                   <div class="name">${item.n}</div>
-                                   <div class="sub-name">${item.sub}</div>`;
+                                   <div class="name">${item.n}</div>;
                     d.onclick = () => {
                         document.getElementById('mi').innerText = item.i;
                         document.getElementById('mt').innerText = item.n;
