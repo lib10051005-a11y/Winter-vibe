@@ -136,7 +136,8 @@
                     d.className = `card ${item.q}`;
                     d.innerHTML = `<span class="tag" style="background:var(--${item.t.toLowerCase()}-color)">${item.t}</span>
                                    <div class="icon">${item.i}</div>
-                                   <div class="name">${item.n}</div>;
+                                   <div class="name">${item.n}</div>
+                                   `;
                     d.onclick = () => {
                         document.getElementById('mi').innerText = item.i;
                         document.getElementById('mt').innerText = item.n;
